@@ -20,6 +20,31 @@ use ProxmoxVE\Exception\MalformedCredentialsException;
 class Credentials
 {
     /**
+     * @var string The Proxmox hostname (or IP address) to connect to.
+     */
+    private $hostname;
+
+    /**
+     * @var string The credentials username used to authenticate with Proxmox.
+     */
+    private $username;
+
+    /**
+     * @var string The credentials password used to authenticate with Proxmox.
+     */
+    private $password;
+
+    /**
+     * @var string The authentication realm (defaults to "pam" if not provided).
+     */
+    private $realm;
+
+    /**
+     * @var string The Proxmox port (defaults to "8006" if not provided).
+     */
+    private $port;
+
+    /**
      * Construct.
      *
      * @param array|object $credentials This needs to have 'hostname',
@@ -51,12 +76,11 @@ class Credentials
     public function __toString()
     {
         return sprintf(
-            '[Host: %s:%s], [Username: %s@%s], [Password: %s].',
+            '[Host: %s:%s], [Username: %s@%s].',
             $this->hostname,
             $this->port,
             $this->username,
-            $this->realm,
-            $this->password
+            $this->realm
         );
     }
 
@@ -232,5 +256,7 @@ class Credentials
                 ];
             }
         }
+
+        return null;
     }
 }
