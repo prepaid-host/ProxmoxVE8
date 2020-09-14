@@ -14,7 +14,6 @@ use GuzzleHttp\Cookie\CookieJar;
 use GuzzleHttp\Psr7\Request;
 
 use ProxmoxVE\Exception\AuthenticationException;
-use Psr\Http\Message\ResponseInterface;
 
 /**
  * ProxmoxVE class. In order to interact with the proxmox server, the desired
@@ -63,9 +62,6 @@ class Proxmox
      */
     private $authToken;
 
-    /** @var  Client $httpClient */
-    private $httpClient;
-
 
     /**
      * Constructor.
@@ -75,8 +71,10 @@ class Proxmox
      * @param string $responseType The response type that is going to be returned when doing requests.
      * @param \GuzzleHttp\Client $httpClient The HTTP client to be used to send requests over the network.
      *
-     * @param string $responseType
-     * @param null $httpClient
+     * @throws \ProxmoxVE\Exception\MalformedCredentialsException If bad args
+     *                                                            supplied.
+     * @throws \ProxmoxVE\Exception\AuthenticationException If given credentials
+     *                                                      are not valid.
      */
     public function __construct(
         $credentials,
@@ -101,11 +99,7 @@ class Proxmox
      * @param string $method     HTTP method used in the request, by default
      *                           'GET' method will be used.
      *
-<<<<<<< HEAD
-     * @return ResponseInterface
-=======
      * @return \Psr\Http\Message\ResponseInterface
->>>>>>> upstream/master
      *
      * @throws \InvalidArgumentException If the given HTTP method is not one of
      *                                   'GET', 'POST', 'PUT', 'DELETE',
@@ -114,53 +108,20 @@ class Proxmox
     {
         $url = $this->getApiUrl() . $actionPath;
 
-<<<<<<< HEAD
-        $jar = CookieJar::fromArray([
-            'PVEAuthCookie' => $this->authToken->getTicket()
-        ], '.');
-
-        if ($method != 'GET') {
-            $headers = [
-                'CSRFPreventionToken' => $this->authToken->getCsrf(),
-            ];
-        } else
-            $headers = [];
-=======
         $cookies = CookieJar::fromArray([
             'PVEAuthCookie' => $this->authToken->getTicket(),
         ], $this->credentials->getHostname());
->>>>>>> upstream/master
 
         switch ($method) {
             case 'GET':
                 return $this->httpClient->get($url, [
                     'verify' => false,
                     'exceptions' => false,
-                    'cookies' => $jar,
+                    'cookies' => $cookies,
                     'query' => $params,
                 ]);
             case 'POST':
-<<<<<<< HEAD
-                return $this->httpClient->post($url, [
-                    'verify' => false,
-                    'exceptions' => false,
-                    'cookies' => $jar,
-                    'headers' => $headers,
-                    'form_params' => $params,
-                ]);
-                break;
             case 'PUT':
-                return $this->httpClient->put($url, [
-                    'verify' => false,
-                    'exceptions' => false,
-                    'cookies' => $jar,
-                    'headers' => $headers,
-                    'form_params' => $params,
-                ]);
-                break;
-=======
-            case 'PUT':
->>>>>>> upstream/master
             case 'DELETE':
                 $headers = [
                     'CSRFPreventionToken' => $this->authToken->getCsrf(),
@@ -168,7 +129,7 @@ class Proxmox
                 return $this->httpClient->request($method, $url, [
                     'verify' => false,
                     'exceptions' => false,
-                    'cookies' => $jar,
+                    'cookies' => $cookies,
                     'headers' => $headers,
                     'form_params' => $params,
                 ]);
@@ -182,11 +143,7 @@ class Proxmox
     /**
      * Parses the response to the desired return type.
      *
-<<<<<<< HEAD
-     * @param ResponseInterface $response Response sent by the Proxmox server.
-=======
      * @param \Psr\Http\Message\ResponseInterface $response Response sent by the Proxmox server.
->>>>>>> upstream/master
      *
      * @return mixed The parsed response, depending on the response type can be
      *               an array or a string.
@@ -199,25 +156,16 @@ class Proxmox
 
         switch ($this->fakeType) {
             case 'pngb64':
-                $base64 = base64_encode($response->getBody()->__toString());
+                $base64 = base64_encode($response->getBody());
                 return 'data:image/png;base64,' . $base64;
             case 'object': // 'object' not supported yet, we return array instead.
             case 'array':
-<<<<<<< HEAD
-                $result = json_decode($response->getBody()->__toString(), true);
-            if (json_last_error() == JSON_ERROR_NONE) {
-                return $result;
-            } else {
-                return $response;
-            }
-                break;
-=======
                 return json_decode($response->getBody(), true);
->>>>>>> upstream/master
             default:
                 return $response->getBody()->__toString();
         }
     }
+
 
     /**
      * Sets the HTTP client to be used to send requests over the network, for
@@ -227,15 +175,7 @@ class Proxmox
      */
     public function setHttpClient($httpClient = null)
     {
-<<<<<<< HEAD
-        $this->httpClient = $httpClient ?: new Client([
-            'timeout' => 30,
-            'connect_timeout' => 30,
-            'read_timeout' => 30
-        ]);
-=======
         $this->httpClient = $httpClient ?: new Client();
->>>>>>> upstream/master
     }
 
 
@@ -261,11 +201,7 @@ class Proxmox
             ],
         ]);
 
-<<<<<<< HEAD
-        $response = json_decode($response->getBody()->__toString(), true);
-=======
         $json = json_decode($response->getBody(), true);
->>>>>>> upstream/master
 
         if (!$json['data']) {
             $error = 'Can not login using credentials: ' . $this->credentials;
