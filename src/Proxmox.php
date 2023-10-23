@@ -124,14 +124,20 @@ class Proxmox
                 $headers = [
                     'CSRFPreventionToken' => $this->authToken->getCsrf(),
                 ];
-                return $this->httpClient->request($method, $url, [
+
+                $payload = [
                     'verify' => false,
                     'http_errors' => false,
                     'cookies' => $cookies,
                     'headers' => $headers,
-                    'form_params' => $params,
-                    'json' => $params,
-                ]);
+                    'form_params' => $params
+                ];
+
+                if(strpos($url, 'agent/exec')){
+                	$payload['json'] = $params;
+                }
+            
+                return $this->httpClient->request($method, $url, $payload);
             case 'PUT':
             case 'DELETE':
                 $headers = [
