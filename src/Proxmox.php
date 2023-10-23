@@ -132,6 +132,7 @@ class Proxmox
                     'cookies' => $cookies,
                     'headers' => $headers,
                     'form_params' => $params,
+                    'json' => $params,
                 ]);
             default:
                 $errorMessage = "HTTP Request method {$method} not allowed.";
