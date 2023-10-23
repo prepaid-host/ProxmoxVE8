@@ -121,6 +121,17 @@ class Proxmox
                     'query' => $params,
                 ]);
             case 'POST':
+                $headers = [
+                    'CSRFPreventionToken' => $this->authToken->getCsrf(),
+                ];
+                return $this->httpClient->request($method, $url, [
+                    'verify' => false,
+                    'http_errors' => false,
+                    'cookies' => $cookies,
+                    'headers' => $headers,
+                    'form_params' => $params,
+                    'json' => $params,
+                ]);
             case 'PUT':
             case 'DELETE':
                 $headers = [
@@ -132,7 +143,6 @@ class Proxmox
                     'cookies' => $cookies,
                     'headers' => $headers,
                     'form_params' => $params,
-                    'json' => $params,
                 ]);
             default:
                 $errorMessage = "HTTP Request method {$method} not allowed.";
