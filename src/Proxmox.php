@@ -55,15 +55,6 @@ class Proxmox
 
 
     /**
-     * Stores the ProxmoxVE user session such as ticket, username and csrf
-     * prevention token, are all in there.
-     *
-     * @var \ProxmoxVE\AuthToken
-     */
-    private $authToken;
-
-
-    /**
      * Constructor.
      *
      * @param mixed $credentials Credentials object or associative array holding
@@ -107,28 +98,23 @@ class Proxmox
     private function requestResource($actionPath, $params = [], $method = 'GET')
     {
         $url = $this->getApiUrl() . $actionPath;
-
-        $cookies = CookieJar::fromArray([
-            'PVEAuthCookie' => $this->authToken->getTicket(),
-        ], $this->credentials->getHostname());
+        $headers = [
+            'Authorization' => $this->credentials->getTokenHeaderValue(),
+        ];
 
         switch ($method) {
             case 'GET':
+
                 return $this->httpClient->get($url, [
                     'verify' => false,
                     'http_errors' => false,
-                    'cookies' => $cookies,
                     'query' => $params,
+                    'headers' => $headers,
                 ]);
             case 'POST':
-                $headers = [
-                    'CSRFPreventionToken' => $this->authToken->getCsrf(),
-                ];
-
                 $payload = [
                     'verify' => false,
                     'http_errors' => false,
-                    'cookies' => $cookies,
                     'headers' => $headers,
                     'form_params' => $params
                 ];
@@ -140,13 +126,9 @@ class Proxmox
                 return $this->httpClient->request($method, $url, $payload);
             case 'PUT':
             case 'DELETE':
-                $headers = [
-                    'CSRFPreventionToken' => $this->authToken->getCsrf(),
-                ];
                 return $this->httpClient->request($method, $url, [
                     'verify' => false,
                     'http_errors' => false,
-                    'cookies' => $cookies,
                     'headers' => $headers,
                     'form_params' => $params,
                 ]);
@@ -195,44 +177,6 @@ class Proxmox
         $this->httpClient = $httpClient ?: new Client();
     }
 
-
-    /**
-     * Attempts to login using set credentials, if succeeded will return the
-     * AuthToken used in all requests.
-     *
-     * @return \ProxmoxVE\AuthToken When successful login will return an
-     *                              instance of the AuthToken class.
-     *
-     * @throws \ProxmoxVE\Exception\AuthenticationException If login fails.
-     */
-    public function login()
-    {
-        $loginUrl = $this->credentials->getApiUrl() . '/json/access/ticket';
-        $response = $this->httpClient->post($loginUrl, [
-            'verify' => false,
-            'http_errors' => false,
-            'form_params' => [
-                'username' => $this->credentials->getUsername(),
-                'password' => $this->credentials->getPassword(),
-                'realm' => $this->credentials->getRealm(),
-            ],
-        ]);
-
-        $json = json_decode($response->getBody(), true);
-
-        if (!$json['data']) {
-            $error = 'Can not login using credentials: ' . $this->credentials;
-            throw new AuthenticationException($error);
-        }
-
-        return new AuthToken(
-            $json['data']['CSRFPreventionToken'],
-            $json['data']['ticket'],
-            $json['data']['username']
-        );
-    }
-
-
     /**
      * Gets the Credentials object associated with this proxmox API instance.
      *
@@ -260,7 +204,6 @@ class Proxmox
         }
 
         $this->credentials = $credentials;
-        $this->authToken = $this->login();
     }
 
 
