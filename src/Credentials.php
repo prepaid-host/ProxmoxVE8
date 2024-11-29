@@ -30,9 +30,14 @@ class Credentials
     private $username;
 
     /**
-     * @var string The credentials password used to authenticate with Proxmox.
+     * @var string The credentials api token used to authenticate with Proxmox.
      */
-    private $password;
+    private $apiToken;
+
+    /**
+     * @var string The credentials api token used to authenticate with Proxmox.
+     */
+    private $apiTokenId;
 
     /**
      * @var string The authentication realm (defaults to "pam" if not provided).
@@ -62,7 +67,8 @@ class Credentials
 
         $this->hostname = $credentials['hostname'];
         $this->username = $credentials['username'];
-        $this->password = $credentials['password'];
+        $this->apiToken = $credentials['apiToken'];
+        $this->apiTokenId = $credentials['apiTokenId'];
         $this->realm = $credentials['realm'];
         $this->port = $credentials['port'];
     }
@@ -123,9 +129,9 @@ class Credentials
      *
      * @return string The password in the credentials.
      */
-    public function getPassword()
+    public function getApiToken()
     {
-        return $this->password;
+        return $this->apiToken;
     }
 
 
@@ -166,7 +172,7 @@ class Credentials
     public function parseCustomCredentials($credentials)
     {
         if (is_array($credentials)) {
-            $requiredKeys = ['hostname', 'username', 'password'];
+            $requiredKeys = ['hostname', 'username', 'apiToken', 'apiTokenId'];
             $credentialsKeys = array_keys($credentials);
 
             $found = count(array_intersect($requiredKeys, $credentialsKeys));
@@ -193,7 +199,7 @@ class Credentials
 
         // Trying to find variables
         $objectProperties = array_keys(get_object_vars($credentials));
-        $requiredProperties = ['hostname', 'username', 'password'];
+        $requiredProperties = ['hostname', 'username', 'apiToken', 'apiTokenId'];
 
         // Needed properties exists in the object?
         $found = count(array_intersect($requiredProperties, $objectProperties));
@@ -209,7 +215,8 @@ class Credentials
             return [
                 'hostname' => $credentials->hostname,
                 'username' => $credentials->username,
-                'password' => $credentials->password,
+                'apiToken' => $credentials->apiToken,
+                'apiTokenId' => $credentials->apiTokenId,
                 'realm' => $realm,
                 'port' => $port,
             ];
@@ -218,7 +225,7 @@ class Credentials
 
         // Trying to find getters
         $objectMethods = get_class_methods($credentials);
-        $requiredMethods = ['getHostname', 'getUsername', 'getPassword'];
+        $requiredMethods = ['getHostname', 'getUsername', 'getApiToken', 'getApiTokenId'];
 
         // Needed functions exists in the object?
         $found = count(array_intersect($requiredMethods, $objectMethods));
@@ -234,7 +241,8 @@ class Credentials
             return [
                 'hostname' => $credentials->getHostname(),
                 'username' => $credentials->getUsername(),
-                'password' => $credentials->getPassword(),
+                'apiToken' => $credentials->getApiToken(),
+                'apiTokenId' => $credentials->getApiTokenId(),
                 'realm' => $realm,
                 'port' => $port,
             ];
@@ -244,13 +252,13 @@ class Credentials
         if (in_array('__get', $objectMethods)) {
             $hasHostname = $credentials->hostname;
             $hasUsername = $credentials->username;
-            $hasPassword = $credentials->password;
+            $hasApiToken = $credentials->apiToken;
 
-            if ($hasHostname and $hasUsername and $hasPassword) {
+            if ($hasHostname and $hasUsername and $hasApiToken) {
                 return [
                     'hostname' => $credentials->hostname,
                     'username' => $credentials->username,
-                    'password' => $credentials->password,
+                    'apiToken' => $credentials->apiToken,
                     'realm' => $credentials->realm ?: 'pam',
                     'port' => $credentials->port ?: '8006',
                 ];
@@ -258,5 +266,15 @@ class Credentials
         }
 
         return null;
+    }
+
+    public function getTokenHeaderValue() {
+        return sprintf(
+            'PVEAPIToken=%s@%s!%s=%s',
+            $this->username,
+            $this->realm,
+            $this->apiTokenId,
+            $this->apiToken
+        );
     }
 }
